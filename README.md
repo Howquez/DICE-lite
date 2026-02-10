@@ -143,7 +143,7 @@ CSV file                 __init__.py                    C_Feed.html / T_Item_Pos
 
 3. **Frontend interactions** (`T_Item_Post.html` + JS): Each post renders action buttons (reply, repost, like, share). JavaScript files handle the interactive behavior — `like_button.js` toggles icons and increments/decrements counts, tracks replies, and monitors sponsored post clicks.
 
-4. **Data collection** (`like_button.js` → `__init__.py`): When the participant proceeds to the next page, `collectLikes()` and `collectReplies()` serialize interaction data as JSON into hidden form fields. oTree submits these to the `Player` model fields defined in `__init__.py`.
+4. **Data collection** (`like_button.js` → `__init__.py`): When the participant clicks a submit button, `collectDataHarmonized()` calls `collectLikes()`, `collectReplies()`, etc. and writes the JSON-serialized results into hidden `<input>` fields defined in `C_Feed.html`. These hidden fields are submitted with the form and map to the `Player` model fields defined in `__init__.py`.
 
 ### Key Files by Role
 
@@ -326,9 +326,38 @@ fields = ['likes_data', 'replies_data', 'dislikes_data', 'promoted_post_clicks',
 
 #### 4. Add the hidden form field (`C_Feed.html`)
 
-oTree auto-generates form fields for Player fields listed in `get_form_fields()`, so you typically don't need to add a hidden input manually — oTree's `{{ formfields }}` handles it. Just make sure the JavaScript writes to the correct field name (`id_dislikes_data`, matching oTree's naming convention for form fields).
+DICE Lite uses explicit hidden `<input>` fields to pass JavaScript-collected data to the backend — oTree does **not** auto-generate these for you. Add a hidden input alongside the existing ones (e.g. `likes_data`, `viewport_data`):
 
-That's it — four files, following the same patterns already used by the like button.
+```html
+<input type="hidden" name="dislikes_data" id="dislikes_data" value="">
+```
+
+#### 5. Wire up the form submission (`static/js/like_button.js`)
+
+The `collectDataHarmonized()` function gathers all interaction data right before the form is submitted. Add your new collection call there:
+
+```javascript
+function collectDataHarmonized() {
+    let likesData = collectLikes();
+    let repliesData = collectReplies();
+    let dislikesData = collectDislikes();
+    let promotedClicksData = JSON.parse(document.getElementById('promoted_post_clicks').value);
+    return {
+        likes: JSON.stringify(likesData),
+        replies: JSON.stringify(repliesData),
+        dislikes: JSON.stringify(dislikesData),
+        promoted_clicks: JSON.stringify(promotedClicksData)
+    };
+}
+```
+
+Then, in **both** submit button click handlers (`submitButtonTop` and `submitButtonBottom`), write the data to the hidden field:
+
+```javascript
+document.getElementById('dislikes_data').value = data.dislikes;
+```
+
+That's it — five files, following the same patterns already used by the like button.
 
 ## Deployment
 
