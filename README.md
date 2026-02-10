@@ -67,7 +67,7 @@ This is the standard oTree way to share and import projects.
 
 ### Option B: Use the GitHub template (recommended for customization)
 
-> This repository is a [GitHub template](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-template-repository). Click **"Use this template"** to create your own copy with full version control.
+> This repository is a GitHub template. Click **"Use this template"** to create your own copy with full version control.
 
 ```bash
 # Clone your copy of the template
