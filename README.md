@@ -110,6 +110,53 @@ Then open [http://localhost:8000](http://localhost:8000) in your browser.
 └── runtime.txt                  # Python version for deployment
 ```
 
+## Architecture
+
+Understanding how data flows through DICE Lite makes it straightforward to add new features or modify existing ones.
+
+### Data Flow: CSV → Backend → Frontend → Data Collection
+
+```
+CSV file                 __init__.py                    C_Feed.html / T_Item_Post.html
+┌──────────┐    read_feed()     ┌──────────────┐    vars_for_template()    ┌────────────────────┐
+│ doc_id   │───────────────────►│  DataFrame   │──────────────────────────►│  {{ for i in       │
+│ text     │  preprocessing()   │  stored per  │   posts dict passed to   │     posts.values() │
+│ likes    │  (format dates,    │  participant │   template context       │  }}                │
+│ ...      │   highlight tags,  │              │                          │    include         │
+│          │   prepare media)   │              │                          │    T_Item_Post     │
+└──────────┘                    └──────────────┘                          └────────────────────┘
+                                                                                   │
+                                                                                   ▼
+                             __init__.py                    JS (like_button.js, ...)
+                                ┌──────────────┐   form submission        ┌────────────────────┐
+                                │ Player model │◄──────────────────────── │ collectLikes()     │
+                                │ fields       │   JSON serialized to     │ collectReplies()   │
+                                │              │   hidden form fields     │ etc.               │
+                                └──────────────┘                          └────────────────────┘
+```
+
+**Step by step:**
+
+1. **CSV → Backend** (`__init__.py`): `read_feed()` loads your CSV. `preprocessing()` formats dates, highlights hashtags/mentions, prepares media URLs, and builds user profile tooltips. The resulting DataFrame is stored in `player.participant.tweets`.
+
+2. **Backend → Frontend** (`C_Feed.html`): `vars_for_template()` converts the DataFrame to a dictionary and passes it to the template. `C_Feed.html` loops through each post with `{{ for i in posts.values() }}` and includes `T_Item_Post.html` for each one — rendering it as a table row (`<tr>`).
+
+3. **Frontend interactions** (`T_Item_Post.html` + JS): Each post renders action buttons (reply, repost, like, share). JavaScript files handle the interactive behavior — `like_button.js` toggles icons and increments/decrements counts, tracks replies, and monitors sponsored post clicks.
+
+4. **Data collection** (`like_button.js` → `__init__.py`): When the participant proceeds to the next page, `collectLikes()` and `collectReplies()` serialize interaction data as JSON into hidden form fields. oTree submits these to the `Player` model fields defined in `__init__.py`.
+
+### Key Files by Role
+
+| What you want to change | Where to look |
+|--------------------------|---------------|
+| Post appearance (layout, buttons, icons) | `T_Item_Post.html` |
+| Feed-level layout (sidebar, search bar) | `C_Feed.html` |
+| Interaction logic (like toggle, reply modal) | `static/js/like_button.js` |
+| Repost/share toggle animation | `static/js/interactions.js` |
+| Dwell time tracking | `static/js/dwell.js` |
+| Data fields and processing pipeline | `__init__.py` (Player class, preprocessing) |
+| Study-level settings (data source, thresholds) | `settings.py` |
+
 ## Customization
 
 ### 1. Feed Data (CSV)
@@ -190,6 +237,98 @@ To add a new page, define a class in `__init__.py` and create a matching HTML te
 ### 4. Adding New Data Fields
 
 To record additional data, add fields to the `Player` class in `__init__.py` and include them in the page's `get_form_fields()`. See [oTree models documentation](https://otree.readthedocs.io/en/latest/models.html).
+
+### Walkthrough: Adding a Dislike Button
+
+This example walks through every file you'd need to touch to add a new "dislike" (thumbs-down) interaction — illustrating how the architecture connects end to end.
+
+#### 1. Add the button HTML (`T_Item_Post.html`)
+
+In the post actions `<div>` (where reply, repost, like, and share buttons are defined), add a dislike button. You'll find two action sections — one for sponsored posts and one for regular posts. Add the dislike button to both:
+
+```html
+<!-- Dislike -->
+<div class="dislike-button col" id="dislike_button_{{i.doc_id}}">
+    <span class="bi bi-hand-thumbs-down text-secondary dislike-icon" style="cursor: pointer">️</span>
+    <span class="dislike-count text-secondary">0</span>
+</div>
+```
+
+Place this after the like button `<div>` and before the share button `<div>`.
+
+#### 2. Add the interaction logic (`static/js/like_button.js`)
+
+Add a toggle function (mirroring `toggleLike`):
+
+```javascript
+function toggleDislike(button) {
+    const icon = button.querySelector('.dislike-icon');
+    const countSpan = button.querySelector('.dislike-count');
+    let count = parseInt(countSpan.textContent);
+
+    if (icon.classList.contains('bi-hand-thumbs-down')) {
+        icon.classList.remove('bi-hand-thumbs-down', 'text-secondary');
+        icon.classList.add('bi-hand-thumbs-down-fill', 'text-primary');
+        count++;
+    } else {
+        icon.classList.remove('bi-hand-thumbs-down-fill', 'text-primary');
+        icon.classList.add('bi-hand-thumbs-down', 'text-secondary');
+        count--;
+    }
+    countSpan.textContent = count.toString();
+}
+```
+
+Attach click listeners (mirroring the like button pattern):
+
+```javascript
+document.querySelectorAll('.dislike-button').forEach(button => {
+    button.addEventListener('click', function() {
+        toggleDislike(button);
+    });
+});
+```
+
+Add a data collection function (mirroring `collectLikes`):
+
+```javascript
+function collectDislikes() {
+    let dislikesData = [];
+    document.querySelectorAll('.dislike-button').forEach(button => {
+        let docId = parseInt(button.getAttribute('id').replace('dislike_button_', ''));
+        let icon = button.querySelector('.dislike-icon');
+        let isDisliked = icon.classList.contains('bi-hand-thumbs-down-fill');
+        dislikesData.push({ doc_id: docId, disliked: isDisliked });
+    });
+    return dislikesData;
+}
+```
+
+Then call `collectDislikes()` in the existing form submission handler (the `submitButton` click listener) and assign the result to a hidden form field:
+
+```javascript
+document.getElementById('dislikes_data').value = JSON.stringify(collectDislikes());
+```
+
+#### 3. Add a Player field and wire it up (`__init__.py`)
+
+Add a field to the `Player` class:
+
+```python
+dislikes_data = models.LongStringField(doc='tracks dislikes.', blank=True)
+```
+
+Include it in `C_Feed.get_form_fields()` so oTree knows to collect it from the form:
+
+```python
+fields = ['likes_data', 'replies_data', 'dislikes_data', 'promoted_post_clicks', ...]
+```
+
+#### 4. Add the hidden form field (`C_Feed.html`)
+
+oTree auto-generates form fields for Player fields listed in `get_form_fields()`, so you typically don't need to add a hidden input manually — oTree's `{{ formfields }}` handles it. Just make sure the JavaScript writes to the correct field name (`id_dislikes_data`, matching oTree's naming convention for form fields).
+
+That's it — four files, following the same patterns already used by the like button.
 
 ## Deployment
 
