@@ -1,10 +1,10 @@
 # DICE Lite
 
-A lightweight, customizable social media feed simulator for online experiments, built with [oTree](https://otree.readthedocs.io/en/latest/).
+A minimal, code-centric social media feed simulator for online experiments, built with [oTree](https://otree.readthedocs.io/en/latest/).
 
-DICE Lite is a trimmed-down version of [DICE](https://github.com/Howquez/DICE) (Digital In-Context Experiments). While the full DICE toolkit lets researchers configure experiments without coding, DICE Lite is designed for researchers who want to **edit the oTree code directly** — giving you full control over every aspect of the experiment.
+DICE Lite is a trimmed-down version of [DICE](https://github.com/Howquez/DICE) (Digital In-Context Experiments). While the full DICE platform lets you create experimental sessions through a [graphical user interface](https://dice-app.org), DICE Lite strips away predefined templates and GUI layers. What remains is a generic microblogging-style UI that you can adapt, redesign, or replace entirely — while the core dwell-time measurement keeps working under the hood.
 
-> **This repository is a [GitHub template](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-template-repository).** Click **"Use this template"** to create your own copy and start customizing.
+This makes DICE Lite a natural entry point for researchers and lab managers who are already familiar with oTree and prefer working with a minimal, modifiable codebase. It is not a replacement for DICE — if you want GUI-based session creation, [DICE](https://github.com/Howquez/DICE) remains the right choice.
 
 ## What It Does
 
@@ -28,8 +28,9 @@ DICE Lite presents participants with a realistic social media feed and records t
 
 ## Prerequisites
 
-- **Python 3.9+**
-- **oTree 5.11+**
+- **Python 3.9+** — download from [python.org](https://www.python.org/downloads/) (make sure to add Python to your PATH)
+- **oTree 5.11+** — install with `pip3 install otree --upgrade` ([installation guide](https://otree.readthedocs.io/en/latest/install.html))
+- **A code editor** — we recommend [PyCharm](https://www.jetbrains.com/pycharm/) (Community Edition is free) for its Python autocompletion and project management. [VS Code](https://code.visualstudio.com/) or [Cursor](https://www.cursor.com/) with the [oTree extension](https://marketplace.visualstudio.com/items?itemName=nickg.otree) (syntax highlighting and live error checking) are also good choices.
 
 If you're new to oTree, start with the official documentation:
 
@@ -39,10 +40,37 @@ If you're new to oTree, start with the official documentation:
 
 oTree is a Python framework for behavioral experiments and surveys. It handles participant management, randomization, page sequencing, and data export out of the box — DICE Lite builds on top of it.
 
-## Quick Start
+## Getting Started
+
+There are two ways to get started, depending on how much you want to customize.
+
+### Option A: Download the `.otreezip` file (quickest)
+
+This is the standard oTree way to share and import projects.
+
+1. Download [`dice-lite.otreezip`](dice-lite.otreezip) from this repository
+2. Navigate to your desired project directory and unpack it:
+
+    ```bash
+    otree unzip dice-lite.otreezip
+    ```
+
+3. Install dependencies and start the server:
+
+    ```bash
+    cd dice-lite
+    pip3 install -r requirements.txt
+    otree devserver
+    ```
+
+4. Open [http://localhost:8000](http://localhost:8000) in your browser.
+
+### Option B: Use the GitHub template (recommended for customization)
+
+> This repository is a [GitHub template](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-template-repository). Click **"Use this template"** to create your own copy with full version control.
 
 ```bash
-# Clone your copy of the template (or download it)
+# Clone your copy of the template
 git clone https://github.com/<your-username>/<your-repo>.git
 cd <your-repo>
 
@@ -171,17 +199,34 @@ For production, set these environment variables:
 - `OTREE_ADMIN_PASSWORD`
 - `OTREE_SECRET_KEY`
 
-## Data Export
+## Useful oTree Documentation
 
-oTree provides built-in data export at `/export/`. DICE Lite also includes a custom export function that outputs a clean CSV with: session code, participant code, condition, item sequence, scroll sequence, dwell times, likes, and replies.
+- [Installing oTree](https://otree.readthedocs.io/en/latest/install.html) — Python setup and first steps
+- [Tutorial](https://otree.readthedocs.io/en/latest/tutorial/intro.html) — learn the basics of oTree
+- [Pages](https://otree.readthedocs.io/en/latest/pages.html) — page sequencing, display logic, and timeouts
+- [Templates](https://otree.readthedocs.io/en/latest/templates.html) — HTML templates, static files, and styling
+- [Models](https://otree.readthedocs.io/en/latest/models.html) — defining data fields and player/group/session models
+- [Forms](https://otree.readthedocs.io/en/latest/forms.html) — form fields and validation
+- [Treatments](https://otree.readthedocs.io/en/latest/treatments.html) — experimental conditions and between-subjects designs
+- [Admin](https://otree.readthedocs.io/en/latest/admin.html) — session management and data export
+- [Server setup](https://otree.readthedocs.io/en/latest/server/intro.html) — deploying to Heroku or your own server
+
+## Citation
+
+If you use DICE Lite in your research, please cite:
+
+> Roggenkamp, H., Boegershausen, J., & Hildebrand, C. (2026). DICE: Advancing Social Media Research Through Digital In-Context Experiments. *Journal of Marketing*. https://doi.org/10.1177/00222429251371702
+
+Since DICE Lite is built on oTree, please also cite:
+
+> Chen, D. L., Schonger, M., & Wickens, C. (2016). oTree — An open-source platform for laboratory, online, and field experiments. *Journal of Behavioral and Experimental Finance*, 9, 88–97. https://doi.org/10.1016/j.jbef.2015.12.001
 
 ## Links
 
-- [DICE (full version)](https://github.com/Howquez/DICE) — the complete toolkit with no-code configuration
+- [DICE (full version)](https://github.com/Howquez/DICE) — the complete toolkit with GUI-based session creation
+- [DICE web app](https://dice-app.org) — create experiments without coding
 - [oTree documentation](https://otree.readthedocs.io/en/latest/)
-- [oTree installation](https://otree.readthedocs.io/en/latest/install.html)
-- [oTree tutorial](https://otree.readthedocs.io/en/latest/tutorial/intro.html)
 
 ## License
 
-Please refer to the [DICE repository](https://github.com/Howquez/DICE) for licensing information.
+This work is licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
